@@ -582,10 +582,10 @@ function submit(){
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ fields: {
-      'Client name':name, 'Client email':email,
-      'Requested date':ds, 'Requested time':timeLabel,
-      'Duration (hours)':hrs, 'Notes':notes,
-      'Meeting type':meetType==='teams'?'Teams':'In person',
+      'Client Name':name, 'Client Email':email,
+      'Requested Date':ds, 'Requested Time':timeLabel,
+      'Duration (Hours)':hrs, 'Notes':notes,
+      'Meeting Type':meetType==='teams'?'Teams':'In person',
       'Address':address||'', 'Status':'Pending'
     }})
   }).then(r => r.json()).then(data => {
