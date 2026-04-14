@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Book a Session</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ink:#1a1a1a;--ink-muted:#6b6b6b;--ink-faint:#d0cec8;
+  --paper:#f7f5f0;--white:#ffffff;
+  --green:#2d5a3d;--green-light:#e8f0ea;--green-mid:#4a8c5c;
+  --warn:#e67e22;--danger:#c0392b;
+  --r:12px;--rs:8px;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:2rem 1rem 4rem}
+
+/* LAYOUT */
+.card{width:100%;max-width:920px;display:grid;grid-template-columns:280px 1fr;background:var(--white);border-radius:20px;box-shadow:0 8px 40px rgba(0,0,0,0.12)}
+.left{background:var(--green);padding:2.5rem 2rem;display:flex;flex-direction:column;gap:1.5rem;color:white;border-radius:20px 0 0 20px}
+.right{padding:2.5rem 2rem;border-radius:0 20px 20px 0;background:var(--white)}
+
+/* LEFT PANEL */
+.avatar{width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:1.3rem;color:white}
+.host-name{font-family:'DM Serif Display',serif;font-size:1.4rem;line-height:1.2}
+.host-sub{font-size:0.82rem;opacity:0.7;margin-top:3px}
+.meta{list-style:none;display:flex;flex-direction:column;gap:10px}
+.meta li{display:flex;align-items:center;gap:9px;font-size:0.85rem;opacity:0.85}
+.meta svg{width:16px;height:16px;flex-shrink:0;opacity:0.7}
+.divider{height:1px;background:rgba(255,255,255,0.15);margin:0.5rem 0}
+.time-label{font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;opacity:0.55;margin-bottom:8px}
+.time-row{display:flex;justify-content:space-between;align-items:center;font-size:0.82rem;opacity:0.8}
+.time-val{font-size:0.95rem;font-weight:500;opacity:1;color:white}
+.time-hint{font-size:0.75rem;opacity:0.5;margin-top:6px}
+
+/* STEPS */
+.step{display:none}.step.active{display:block}
+.progress{display:flex;gap:6px;align-items:center;margin-bottom:1.5rem}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--ink-faint);transition:all 0.2s}
+.dot.done{background:var(--green-mid)}
+.dot.active{background:var(--green);width:20px;border-radius:3px}
+.step-title{font-family:'DM Serif Display',serif;font-size:1.25rem;margin-bottom:4px}
+.step-sub{font-size:0.85rem;color:var(--ink-muted);margin-bottom:1.5rem}
+
+/* CALENDAR */
+.cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
+.cal-month{font-weight:500;font-size:0.95rem}
+.cal-btn{background:none;border:1px solid var(--ink-faint);border-radius:6px;width:30px;height:30px;cursor:pointer;font-size:1rem;color:var(--ink-muted);transition:all 0.15s;display:flex;align-items:center;justify-content:center}
+.cal-btn:hover{border-color:var(--green);color:var(--green)}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:1.5rem}
+.dow{text-align:center;font-size:0.68rem;font-weight:500;color:var(--ink-muted);padding:4px 0 8px;text-transform:uppercase;letter-spacing:0.05em}
+.day{height:38px;display:flex;align-items:center;justify-content:center;border-radius:8px;font-size:0.875rem;border:1.5px solid transparent;position:relative;user-select:none}
+.day.empty{pointer-events:none}
+.day.past{color:var(--ink-faint);pointer-events:none}
+.day.weekend{color:var(--ink-faint);pointer-events:none}
+.day.avail{cursor:pointer}
+.day.avail:hover{background:var(--green-light);border-color:var(--green-mid);color:var(--green)}
+.day.selected{background:var(--green)!important;color:white!important;font-weight:500;border-color:var(--green)!important}
+.day.has-dot::after{content:'';position:absolute;bottom:3px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:var(--warn)}
+.day.selected.has-dot::after{background:rgba(255,255,255,0.6)}
+
+/* TIMELINE */
+.tl-legend{display:flex;gap:16px;font-size:0.78rem;color:var(--ink-muted);margin-bottom:10px}
+.tl-legend span{display:flex;align-items:center;gap:5px}
+.tl-swatch{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+.tl-hint{font-size:0.8rem;color:var(--ink-muted);margin-bottom:10px;padding:7px 12px;background:var(--paper);border-radius:6px}
+.tl{border:1.5px solid var(--ink-faint);border-radius:var(--r);overflow:hidden;margin-bottom:1.5rem}
+.tl-row{display:grid;grid-template-columns:64px 1fr;border-bottom:1px solid #f0ede8;min-height:50px}
+.tl-row:last-child{border-bottom:none}
+.tl-hour{display:flex;align-items:flex-start;padding:9px 10px 0 0;justify-content:flex-end;font-size:0.72rem;color:var(--ink-muted);font-weight:500;background:#faf9f7;border-right:1px solid #f0ede8}
+.tl-block{padding:9px 12px;cursor:pointer;transition:background 0.1s;position:relative}
+.tl-block.free:hover{background:var(--green-light)}
+.tl-block.booked{background:#fdf0ef;cursor:not-allowed}
+.tl-block-lbl{font-size:0.78rem;font-weight:500;color:transparent;pointer-events:none}
+.tl-block.booked .tl-block-lbl{color:#c0392b;opacity:0.8}
+.tl-block.free:hover .tl-block-lbl{color:var(--green)}
+.tl-block.sel-start,.tl-block.sel-mid,.tl-block.sel-end,.tl-block.sel-only{background:var(--green-light)}
+.tl-block.sel-start .tl-block-lbl,.tl-block.sel-mid .tl-block-lbl,.tl-block.sel-end .tl-block-lbl,.tl-block.sel-only .tl-block-lbl{color:var(--green)}
+.tl-block.confirmed-start,.tl-block.confirmed-mid,.tl-block.confirmed-end,.tl-block.confirmed-only{background:var(--green)}
+.tl-block.confirmed-start .tl-block-lbl,.tl-block.confirmed-mid .tl-block-lbl,.tl-block.confirmed-end .tl-block-lbl,.tl-block.confirmed-only .tl-block-lbl{color:white}
+.tl-badge{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:var(--green);color:white;font-size:0.72rem;font-weight:500;padding:3px 8px;border-radius:10px;pointer-events:none}
+
+/* FORM */
+.summary-card{background:var(--green-light);border:1px solid rgba(45,90,61,0.2);border-radius:var(--r);padding:1rem 1.25rem;margin-bottom:1.25rem;display:flex;flex-direction:column;gap:7px}
+.summary-row{display:flex;align-items:center;gap:8px;font-size:0.875rem;color:var(--green)}
+.summary-dot{width:5px;height:5px;border-radius:50%;background:var(--green-mid);flex-shrink:0}
+.fields{display:flex;flex-direction:column;gap:14px;margin-bottom:1.25rem}
+.field-group{display:flex;flex-direction:column;gap:5px}
+.field-label{font-size:0.78rem;font-weight:500;color:var(--ink-muted);text-transform:uppercase;letter-spacing:0.05em}
+.field-input{border:1.5px solid var(--ink-faint);border-radius:var(--rs);padding:10px 13px;font-family:'DM Sans',sans-serif;font-size:0.9rem;color:var(--ink);background:var(--white);transition:border-color 0.15s;outline:none;width:100%}
+.field-input:focus{border-color:var(--green)}
+textarea.field-input{resize:vertical;min-height:75px}
+.meet-btns{display:flex;gap:10px}
+.meet-btn{flex:1;border:1.5px solid var(--ink-faint);border-radius:var(--rs);padding:10px 8px;background:white;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:0.85rem;color:var(--ink-muted);display:flex;align-items:center;justify-content:center;gap:7px;transition:all 0.15s}
+.meet-btn:hover{border-color:var(--green-mid);color:var(--green);background:var(--green-light)}
+.meet-btn.active{border-color:var(--green);background:var(--green-light);color:var(--green);font-weight:500}
+.meet-btn svg{width:15px;height:15px;flex-shrink:0}
+.addr-badge{display:none;align-items:center;gap:8px;background:var(--green-light);border:1px solid rgba(45,90,61,0.2);border-radius:var(--rs);padding:8px 12px;font-size:0.8rem;color:var(--green);margin-top:6px}
+.addr-badge.show{display:flex}
+.addr-badge svg{width:13px;height:13px;flex-shrink:0}
+.addr-edit{margin-left:auto;font-size:0.75rem;cursor:pointer;text-decoration:underline;color:var(--green-mid)}
+
+/* NAV BUTTONS */
+.nav{display:flex;align-items:center;justify-content:space-between;padding-top:1.25rem;border-top:1px solid var(--paper);margin-top:0.5rem}
+.btn{border:none;border-radius:var(--rs);padding:10px 22px;font-family:'DM Sans',sans-serif;font-size:0.875rem;font-weight:500;cursor:pointer;transition:all 0.15s}
+.btn-primary{background:var(--green);color:white}
+.btn-primary:hover{background:#23472f}
+.btn-primary:disabled{background:var(--ink-faint);cursor:not-allowed}
+.btn-ghost{background:none;color:var(--ink-muted);border:1px solid var(--ink-faint)}
+.btn-ghost:hover{border-color:var(--ink-muted);color:var(--ink)}
+
+/* SUCCESS */
+.success{display:flex;flex-direction:column;align-items:center;text-align:center;gap:1rem;padding:3rem 0}
+.success-icon{width:60px;height:60px;border-radius:50%;background:var(--green-light);display:flex;align-items:center;justify-content:center}
+.success-icon svg{width:26px;height:26px;stroke:var(--green)}
+.success-title{font-family:'DM Serif Display',serif;font-size:1.5rem}
+.success-sub{font-size:0.875rem;color:var(--ink-muted);max-width:280px;line-height:1.6}
+.success-detail{background:var(--green-light);border-radius:var(--r);padding:1rem 1.5rem;font-size:0.875rem;color:var(--green);line-height:1.8;width:100%;max-width:300px;text-align:left}
+.back-link{font-size:0.8rem;color:var(--ink-muted);cursor:pointer;text-decoration:underline}
+.back-link:hover{color:var(--ink)}
+
+/* MODAL */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(26,26,26,0.5);z-index:999;align-items:center;justify-content:center}
+.modal-bg.open{display:flex}
+.modal{background:white;border-radius:var(--r);padding:1.75rem;width:100%;max-width:360px;margin:1rem;display:flex;flex-direction:column;gap:14px}
+.modal-title{font-family:'DM Serif Display',serif;font-size:1.1rem}
+.modal-sub{font-size:0.8rem;color:var(--ink-muted)}
+.modal-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:4px}
+</style>
+</head>
+<body>
+
+<!-- MODAL (outside card, fixed position) -->
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <div class="modal-title">Your address</div>
+    <div class="modal-sub">So we know where to come for the in-person session.</div>
+    <div class="field-group">
+      <label class="field-label">Street address</label>
+      <input class="field-input" id="addrStreet" placeholder="123 Example Street">
+    </div>
+    <div class="modal-row">
+      <div class="field-group">
+        <label class="field-label">Suburb</label>
+        <input class="field-input" id="addrSuburb" placeholder="Brisbane">
+      </div>
+      <div class="field-group">
+        <label class="field-label">Postcode</label>
+        <input class="field-input" id="addrPostcode" placeholder="4000" maxlength="4">
+      </div>
+    </div>
+    <div class="field-group">
+      <label class="field-label">State</label>
+      <select class="field-input" id="addrState">
+        <option value="">Select…</option>
+        <option>QLD</option><option>NSW</option><option>VIC</option>
+        <option>WA</option><option>SA</option><option>TAS</option>
+        <option>ACT</option><option>NT</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="cancelAddr()">Cancel</button>
+      <button class="btn btn-primary" onclick="confirmAddr()">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+
+  <!-- LEFT -->
+  <div class="left">
+    <div class="avatar" id="avatar">YN</div>
+    <div>
+      <div class="host-name" id="hostName">Your Name</div>
+      <div class="host-sub">Booking Request</div>
+    </div>
+    <ul class="meta">
+      <li>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span id="durationDisplay">Choose start &amp; end time</span>
+      </li>
+      <li>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Mon – Fri, 9am – 5pm
+      </li>
+      <li>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        In person / Teams
+      </li>
+    </ul>
+    <div class="divider"></div>
+    <div>
+      <div class="time-label">Selected time</div>
+      <div class="time-row"><span>Start</span><span class="time-val" id="lpStart">—</span></div>
+      <div style="height:1px;background:rgba(255,255,255,0.15);margin:6px 0"></div>
+      <div class="time-row"><span>End</span><span class="time-val" id="lpEnd">—</span></div>
+      <div class="time-hint" id="lpHint">Pick a date first</div>
+    </div>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="right">
+
+    <!-- STEP 1: Date -->
+    <div class="step active" id="step1">
+      <div class="progress"><div class="dot active"></div><div class="dot"></div><div class="dot"></div></div>
+      <div class="step-title">Pick a date</div>
+      <div class="step-sub">Mon–Fri only. Weekends are unavailable.</div>
+      <div class="cal-nav">
+        <button class="cal-btn" onclick="prevMonth()">&#8249;</button>
+        <span class="cal-month" id="calLabel"></span>
+        <button class="cal-btn" onclick="nextMonth()">&#8250;</button>
+      </div>
+      <div class="cal-grid" id="calGrid"></div>
+      <div class="nav">
+        <span></span>
+        <button class="btn btn-primary" id="btn1" disabled onclick="goStep(2)">Choose a time →</button>
+      </div>
+    </div>
+
+    <!-- STEP 2: Time -->
+    <div class="step" id="step2">
+      <div class="progress"><div class="dot done"></div><div class="dot active"></div><div class="dot"></div></div>
+      <div class="step-title">Pick your time</div>
+      <div class="step-sub" id="step2Sub"></div>
+      <div class="tl-legend">
+        <span><span class="tl-swatch" style="background:#fdf0ef;border:1px solid #f0a090"></span>Booked</span>
+        <span><span class="tl-swatch" style="background:var(--green-light);border:1px solid var(--green-mid)"></span>Your selection</span>
+        <span><span class="tl-swatch" style="background:white;border:1px solid var(--ink-faint)"></span>Available</span>
+      </div>
+      <div class="tl-hint" id="tlHint">Click a start time, then click an end time</div>
+      <div class="tl" id="tl"></div>
+      <div class="nav">
+        <button class="btn btn-ghost" onclick="goStep(1)">← Back</button>
+        <button class="btn btn-primary" id="btn2" disabled onclick="goStep(3)">Add your details →</button>
+      </div>
+    </div>
+
+    <!-- STEP 3: Details -->
+    <div class="step" id="step3">
+      <div class="progress"><div class="dot done"></div><div class="dot done"></div><div class="dot active"></div></div>
+      <div class="step-title">Your details</div>
+      <div class="step-sub">Almost done.</div>
+      <div class="summary-card">
+        <div class="summary-row"><div class="summary-dot"></div><span id="sumDate"></span></div>
+        <div class="summary-row"><div class="summary-dot"></div><span id="sumTime"></span></div>
+      </div>
+      <div class="fields">
+        <div class="field-group">
+          <label class="field-label">Your name</label>
+          <input class="field-input" id="fname" placeholder="Jane Smith" oninput="checkForm()">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Email address</label>
+          <input class="field-input" type="email" id="femail" placeholder="jane@example.com" oninput="checkForm()">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Meeting type</label>
+          <div class="meet-btns">
+            <button class="meet-btn" id="btnTeams" onclick="setMeet('teams')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="13" height="10" rx="2"/><path d="M22 8l-5 4 5 4V8z"/></svg>
+              Microsoft Teams
+            </button>
+            <button class="meet-btn" id="btnInPerson" onclick="setMeet('inperson')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              In person
+            </button>
+          </div>
+          <div class="addr-badge" id="addrBadge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            <span id="addrText"></span>
+            <span class="addr-edit" onclick="openModal()">Edit</span>
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Notes (optional)</label>
+          <textarea class="field-input" id="fnotes" placeholder="Anything you'd like me to know…"></textarea>
+        </div>
+      </div>
+      <div class="nav">
+        <button class="btn btn-ghost" onclick="goStep(2)">← Back</button>
+        <button class="btn btn-primary" id="btnSubmit" disabled onclick="submit()">Send request →</button>
+      </div>
+    </div>
+
+    <!-- SUCCESS -->
+    <div class="step" id="stepDone">
+      <div class="success">
+        <div class="success-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+        <div class="success-title">Request sent!</div>
+        <div class="success-sub">You'll get a confirmation email once your booking is approved.</div>
+        <div class="success-detail" id="successDetail"></div>
+        <span class="back-link" onclick="reset()">Make another booking</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────────
+const HOST_NAME     = "Your Name";
+const HOST_INITIALS = "YN";
+const HOURS         = { start: 9, end: 17 };
+const MONTHS        = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const DAYS          = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+
+// ── HELPERS ───────────────────────────────────────────────
+function fmt(d){ return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate()); }
+function p(n){ return String(n).padStart(2,'0'); }
+function addDays(d,n){ const r=new Date(d); r.setDate(r.getDate()+n); return r; }
+function isWE(d){ return d.getDay()===0||d.getDay()===6; }
+function isPast(d){
+  const t=new Date(); // today
+  if(d.getFullYear()!==t.getFullYear()) return d.getFullYear()<t.getFullYear();
+  if(d.getMonth()!==t.getMonth()) return d.getMonth()<t.getMonth();
+  return d.getDate()<t.getDate();
+}
+function fmtHour(h){
+  if(h===12) return '12:00 PM';
+  return h<12?`${h}:00 AM`:`${h-12}:00 PM`;
+}
+
+// ── DEMO BOOKINGS ─────────────────────────────────────────
+// Format: "YYYY-MM-DD" -> [[startHour, endHour], ...]
+const base = new Date(); base.setHours(12,0,0,0);
+const BOOKINGS = {
+  [fmt(addDays(base,1))]: [[9,11]],
+  [fmt(addDays(base,3))]: [[10,11],[13,15]],
+  [fmt(addDays(base,5))]: [[9,17]],
+};
+function hasBookings(ds){ return !!(BOOKINGS[ds]&&BOOKINGS[ds].length); }
+function bookedRanges(ds){ return BOOKINGS[ds]||[]; }
+function hourBooked(ds,h){ return bookedRanges(ds).some(([s,e])=>h>=s&&h<e); }
+function rangeOverlaps(ds,s,e){ return bookedRanges(ds).some(([bs,be])=>s<be&&e>bs); }
+
+// ── STATE ─────────────────────────────────────────────────
+let selDate=null, selStart=null, selEnd=null;
+let meetType=null, address=null;
+let pickingEnd=false;
+let vy=base.getFullYear(), vm=base.getMonth();
+
+// ── INIT ──────────────────────────────────────────────────
+document.getElementById('hostName').textContent=HOST_NAME;
+document.getElementById('avatar').textContent=HOST_INITIALS;
+renderCal();
+
+// ── LEFT PANEL ────────────────────────────────────────────
+function updateLeft(){
+  const s=document.getElementById('lpStart');
+  const e=document.getElementById('lpEnd');
+  const h=document.getElementById('lpHint');
+  const d=document.getElementById('durationDisplay');
+  if(selStart===null){
+    s.textContent='—'; e.textContent='—';
+    h.textContent=selDate?'Click a start time':'Pick a date first';
+    d.textContent='Choose start & end time';
+  } else if(selEnd===null){
+    s.textContent=fmtHour(selStart); e.textContent='—';
+    h.textContent='Now click an end time';
+    d.textContent='Choose end time';
+  } else {
+    s.textContent=fmtHour(selStart);
+    e.textContent=fmtHour(selEnd);
+    const hrs=selEnd-selStart;
+    h.textContent=hrs+' hour'+(hrs>1?'s':'')+' total';
+    d.textContent=hrs+' hour'+(hrs>1?'s':'')+' session';
+  }
+}
+
+// ── CALENDAR ──────────────────────────────────────────────
+function renderCal(){
+  document.getElementById('calLabel').textContent=MONTHS[vm]+' '+vy;
+  const g=document.getElementById('calGrid');
+  g.innerHTML='';
+  // day headers
+  DAYS.forEach(d=>{ const el=document.createElement('div'); el.className='dow'; el.textContent=d; g.appendChild(el); });
+  // blank cells
+  const first=new Date(vy,vm,1).getDay();
+  for(let i=0;i<first;i++){ const el=document.createElement('div'); el.className='day empty'; g.appendChild(el); }
+  // day cells
+  const dim=new Date(vy,vm+1,0).getDate();
+  for(let d=1;d<=dim;d++){
+    const date=new Date(vy,vm,d,12,0,0);
+    const ds=fmt(date);
+    const el=document.createElement('div');
+    el.className='day';
+    el.textContent=d;
+    if(isWE(date)){
+      el.classList.add('weekend');
+    } else if(isPast(date)){
+      el.classList.add('past');
+    } else {
+      el.classList.add('avail');
+      if(hasBookings(ds)) el.classList.add('has-dot');
+      if(selDate&&fmt(selDate)===ds) el.classList.add('selected');
+      el.onclick=()=>pickDate(date,el);
+    }
+    g.appendChild(el);
+  }
+}
+function prevMonth(){ vm--; if(vm<0){vm=11;vy--;} renderCal(); }
+function nextMonth(){ vm++; if(vm>11){vm=0;vy++;} renderCal(); }
+function pickDate(date,el){
+  selDate=date; selStart=null; selEnd=null; pickingEnd=false;
+  document.querySelectorAll('.day.selected').forEach(e=>e.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('btn1').disabled=false;
+  updateLeft();
+}
+
+// ── TIMELINE ──────────────────────────────────────────────
+function renderTimeline(ds){
+  const wrap=document.getElementById('tl');
+  wrap.innerHTML='';
+  for(let h=HOURS.start;h<HOURS.end;h++){
+    const booked=hourBooked(ds,h);
+    const row=document.createElement('div'); row.className='tl-row';
+    const hourEl=document.createElement('div'); hourEl.className='tl-hour'; hourEl.textContent=fmtHour(h);
+    const block=document.createElement('div');
+    block.className='tl-block '+(booked?'booked':'free');
+    block.dataset.hour=h;
+    const lbl=document.createElement('div'); lbl.className='tl-block-lbl';
+    lbl.textContent=booked?'Already booked':'';
+    block.appendChild(lbl);
+    if(!booked){
+      block.onclick=()=>tlClick(h,ds);
+      block.onmouseenter=()=>tlHover(h,ds);
+      block.onmouseleave=()=>tlRefresh(ds,null);
+    }
+    row.appendChild(hourEl); row.appendChild(block); wrap.appendChild(row);
+  }
+  tlRefresh(ds,null);
+}
+
+function tlClick(h,ds){
+  if(!pickingEnd){
+    selStart=h; selEnd=null; pickingEnd=true;
+    document.getElementById('tlHint').textContent='Good — now click an end time below your start';
+    document.getElementById('btn2').disabled=true;
+  } else {
+    if(h<=selStart){ return; }
+    if(rangeOverlaps(ds,selStart,h)){
+      document.getElementById('tlHint').textContent='That range overlaps a booked slot — pick a different end time';
+      return;
+    }
+    selEnd=h; pickingEnd=false;
+    document.getElementById('tlHint').textContent='Perfect! Hit "Add your details" when ready.';
+    document.getElementById('btn2').disabled=false;
+  }
+  updateLeft();
+  tlRefresh(ds,null);
+}
+
+function tlHover(h,ds){ if(pickingEnd&&selStart!==null) tlRefresh(ds,h); }
+
+function tlRefresh(ds,hoverEnd){
+  const blocks=document.querySelectorAll('.tl-block');
+  blocks.forEach(b=>{
+    if(b.classList.contains('booked')) return;
+    b.classList.remove('sel-start','sel-mid','sel-end','sel-only','confirmed-start','confirmed-mid','confirmed-end','confirmed-only');
+    const old=b.querySelector('.tl-badge'); if(old) old.remove();
+    const lbl=b.querySelector('.tl-block-lbl'); if(lbl) lbl.textContent='';
+  });
+  if(selStart===null) return;
+
+  // show confirmed selection
+  if(selEnd!==null){
+    blocks.forEach(b=>{
+      if(b.classList.contains('booked')) return;
+      const h=parseInt(b.dataset.hour);
+      const lbl=b.querySelector('.tl-block-lbl');
+      if(h>=selStart&&h<selEnd){
+        const hrs=selEnd-selStart;
+        if(selEnd-selStart===1){ b.classList.add('confirmed-only'); if(lbl) lbl.textContent=fmtHour(selStart)+' → '+fmtHour(selEnd); }
+        else if(h===selStart){ b.classList.add('confirmed-start'); if(lbl) lbl.textContent=fmtHour(selStart); }
+        else if(h===selEnd-1){
+          b.classList.add('confirmed-end'); if(lbl) lbl.textContent='→ '+fmtHour(selEnd);
+          const badge=document.createElement('div'); badge.className='tl-badge';
+          badge.textContent=hrs+' hr'+(hrs>1?'s':''); b.appendChild(badge);
+        } else { b.classList.add('confirmed-mid'); }
+      }
+    });
+    return;
+  }
+
+  // show hover preview or just start marker
+  const end=hoverEnd;
+  blocks.forEach(b=>{
+    if(b.classList.contains('booked')) return;
+    const h=parseInt(b.dataset.hour);
+    const lbl=b.querySelector('.tl-block-lbl');
+    if(h===selStart&&end===null){ b.classList.add('sel-start'); if(lbl) lbl.textContent='Start: '+fmtHour(h); return; }
+    if(end===null||h<selStart||h>=end) return;
+    if(end-selStart===1){ b.classList.add('sel-only'); }
+    else if(h===selStart){ b.classList.add('sel-start'); if(lbl) lbl.textContent=fmtHour(selStart); }
+    else if(h===end-1){ b.classList.add('sel-end'); if(lbl) lbl.textContent='→ '+fmtHour(end); }
+    else { b.classList.add('sel-mid'); }
+  });
+}
+
+// ── STEPS ─────────────────────────────────────────────────
+function goStep(n){
+  document.querySelectorAll('.step').forEach(s=>s.classList.remove('active'));
+  if(n===2){
+    const ds=fmt(selDate);
+    const opts={weekday:'long',year:'numeric',month:'long',day:'numeric'};
+    document.getElementById('step2Sub').textContent=selDate.toLocaleDateString('en-AU',opts);
+    selStart=null; selEnd=null; pickingEnd=false;
+    document.getElementById('btn2').disabled=true;
+    document.getElementById('tlHint').textContent='Click a start time, then click an end time';
+    renderTimeline(ds);
+    updateLeft();
+    document.getElementById('step2').classList.add('active');
+  } else if(n===3){
+    const opts={weekday:'long',month:'long',day:'numeric',year:'numeric'};
+    document.getElementById('sumDate').textContent=selDate.toLocaleDateString('en-AU',opts);
+    const hrs=selEnd-selStart;
+    document.getElementById('sumTime').textContent=fmtHour(selStart)+' – '+fmtHour(selEnd)+' ('+hrs+' hr'+(hrs>1?'s':'')+')';
+    meetType=null; address=null;
+    document.getElementById('btnTeams').classList.remove('active');
+    document.getElementById('btnInPerson').classList.remove('active');
+    document.getElementById('addrBadge').classList.remove('show');
+    document.getElementById('step3').classList.add('active');
+    checkForm();
+  } else {
+    document.getElementById('step'+n).classList.add('active');
+  }
+}
+
+// ── MEETING TYPE ──────────────────────────────────────────
+function setMeet(type){
+  meetType=type;
+  document.getElementById('btnTeams').classList.toggle('active',type==='teams');
+  document.getElementById('btnInPerson').classList.toggle('active',type==='inperson');
+  if(type==='inperson'){ openModal(); }
+  else { address=null; document.getElementById('addrBadge').classList.remove('show'); }
+  checkForm();
+}
+function openModal(){ document.getElementById('modalBg').classList.add('open'); }
+function cancelAddr(){
+  document.getElementById('modalBg').classList.remove('open');
+  if(!address){ meetType=null; document.getElementById('btnInPerson').classList.remove('active'); }
+  checkForm();
+}
+function confirmAddr(){
+  const st=document.getElementById('addrStreet').value.trim();
+  const su=document.getElementById('addrSuburb').value.trim();
+  const pc=document.getElementById('addrPostcode').value.trim();
+  const sa=document.getElementById('addrState').value;
+  if(!st||!su||!pc||!sa) return;
+  address=st+', '+su+' '+sa+' '+pc;
+  document.getElementById('addrText').textContent=address;
+  document.getElementById('addrBadge').classList.add('show');
+  document.getElementById('modalBg').classList.remove('open');
+  checkForm();
+}
+
+// ── FORM ──────────────────────────────────────────────────
+function checkForm(){
+  const name=document.getElementById('fname').value.trim();
+  const email=document.getElementById('femail').value.trim();
+  const ok=name.length>1&&/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)&&meetType!==null&&(meetType==='teams'||!!address);
+  document.getElementById('btnSubmit').disabled=!ok;
+}
+
+function submit(){
+  const name=document.getElementById('fname').value.trim();
+  const email=document.getElementById('femail').value.trim();
+  const notes=document.getElementById('fnotes').value.trim();
+  const ds=fmt(selDate);
+  const opts={weekday:'long',month:'long',day:'numeric',year:'numeric'};
+  const dateLabel=selDate.toLocaleDateString('en-AU',opts);
+  const hrs=selEnd-selStart;
+  const timeLabel=fmtHour(selStart)+' – '+fmtHour(selEnd);
+  const meetLabel=meetType==='teams'?'Microsoft Teams':'In person — '+address;
+
+  // ── SUBMIT TO CLOUDFLARE WORKER (keeps API key secure) ──
+  fetch('https://lively-haze-cb5a.pawan-9c4.workers.dev/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fields: {
+      'Client name':name, 'Client email':email,
+      'Requested date':ds, 'Requested time':timeLabel,
+      'Duration (hours)':hrs, 'Notes':notes,
+      'Meeting type':meetType==='teams'?'Teams':'In person',
+      'Address':address||'', 'Status':'Pending'
+    }})
+  }).then(r => r.json()).then(data => {
+    if(data.id){
+      document.getElementById('successDetail').innerHTML=
+        '<strong>'+name+'</strong><br>'+dateLabel+'<br>'+timeLabel+' · '+hrs+' hr'+(hrs>1?'s':'')+'<br>'+meetLabel+'<br><br>'+
+        'Kindly await your confirmation email once your booking has been approved.';
+      document.querySelectorAll('.step').forEach(s=>s.classList.remove('active'));
+      document.getElementById('stepDone').classList.add('active');
+    } else {
+      alert('Something went wrong. Please try again.');
+      console.error(data);
+    }
+  }).catch(err => {
+    alert('Connection error. Please try again.');
+    console.error(err);
+  });
+}
+
+function reset(){
+  selDate=null; selStart=null; selEnd=null; meetType=null; address=null; pickingEnd=false;
+  document.getElementById('fname').value='';
+  document.getElementById('femail').value='';
+  document.getElementById('fnotes').value='';
+  document.getElementById('addrStreet').value='';
+  document.getElementById('addrSuburb').value='';
+  document.getElementById('addrPostcode').value='';
+  document.getElementById('addrState').value='';
+  document.getElementById('btn1').disabled=true;
+  updateLeft();
+  document.querySelectorAll('.step').forEach(s=>s.classList.remove('active'));
+  document.getElementById('step1').classList.add('active');
+  renderCal();
+}
+</script>
+</body>
+</html>
